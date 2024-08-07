@@ -4,6 +4,9 @@ import { nanoid } from "nanoid";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { useDebouncedCallback } from "use-debounce";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/spinner";
 
 type Form = {
   slug: string;
@@ -20,34 +23,43 @@ const CreateLinkForm: NextPage = () => {
       slug: form.slug,
     },
     {
-      refetchOnReconnect: false,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
       enabled: false,
     },
   );
 
-  const debounced = useDebouncedCallback(() => slugCheck.refetch(), 100);
+  const debounced = useDebouncedCallback(() => {
+    if (!form.slug) {
+      return;
+    }
+    slugCheck.refetch();
+  }, 100);
 
   const createSlug = api.link.createSlug.useMutation();
+  const isEnabled =
+    form.slug.length > 0 &&
+    form.url.length > 0 &&
+    form.password.length > 1 &&
+    slugCheck.isFetched &&
+    slugCheck.data?.isAvailable;
 
   if (createSlug.status === "success") {
     return (
       <>
         <div className="flex items-center justify-center">
           <h1>{`${url}/${form.slug}`}</h1>
-          <input
-            type="button"
-            value="Copy Link"
-            className="ml-2 cursor-pointer rounded bg-pink-500 px-1 py-1.5 font-bold"
+
+          <Button
+            className="ml-2 cursor-pointer rounded bg-pink-500 px-1 py-1.5"
             onClick={async () => {
               await navigator.clipboard.writeText(`${url}/${form.slug}`);
             }}
-          />
+          >
+            Copy Link
+          </Button>
         </div>
         <input
           type="button"
-          value="Reset"
+          value="Back"
           className="m-5 cursor-pointer rounded bg-pink-500 px-1 py-1.5 font-bold"
           onClick={() => {
             createSlug.reset();
@@ -59,13 +71,7 @@ const CreateLinkForm: NextPage = () => {
   }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        createSlug.mutate({ ...form });
-      }}
-      className="flex h-screen flex-col justify-center sm:w-2/3 md:w-1/2 lg:w-1/3"
-    >
+    <div className="flex h-screen flex-col justify-center sm:w-2/3 md:w-1/2 lg:w-1/3">
       {form.slug?.trim() && !slugCheck.data?.isAvailable && (
         <span className="mr-2 text-center font-medium text-red-500">
           Slug already in use.
@@ -73,7 +79,7 @@ const CreateLinkForm: NextPage = () => {
       )}
       <div className="flex items-center">
         <span className="mr-2 font-medium">{url}/</span>
-        <input
+        <Input
           type="text"
           onChange={(e) => {
             setForm({
@@ -85,7 +91,7 @@ const CreateLinkForm: NextPage = () => {
             }
           }}
           minLength={1}
-          placeholder="rothaniel"
+          placeholder="slug"
           className={cn(
             "my-1 block w-full rounded-md border border-slate-300 bg-white p-2 text-black placeholder-slate-400 shadow-sm focus:border-pink-500 focus:outline-none focus:ring-1 focus:ring-pink-500 sm:text-sm",
             slugCheck.isFetched &&
@@ -98,23 +104,22 @@ const CreateLinkForm: NextPage = () => {
           required
         />
 
-        <input
-          type="button"
-          value="Random"
-          className="ml-2 cursor-pointer rounded bg-pink-500 px-1 py-1.5 font-bold"
+        <Button
+          className="ml-2 cursor-pointer rounded bg-pink-500 px-1 py-1.5 font-bold hover:bg-pink-600"
           onClick={() => {
             const slug = nanoid();
             setForm({
               ...form,
               slug,
             });
-            slugCheck.refetch();
           }}
-        />
+        >
+          Random
+        </Button>
       </div>
       <div className="flex items-center">
         <span className="mr-2 font-medium">Link</span>
-        <input
+        <Input
           type="url"
           onChange={(e) => setForm({ ...form, url: e.target.value })}
           placeholder="https://google.com"
@@ -124,7 +129,8 @@ const CreateLinkForm: NextPage = () => {
       </div>
       <div className="flex items-center">
         <span className="mr-2 font-medium">Password</span>
-        <input
+
+        <Input
           type="password"
           onChange={(e) => {
             setForm({
@@ -141,13 +147,18 @@ const CreateLinkForm: NextPage = () => {
         />
       </div>
 
-      <input
-        type="submit"
-        value="Create"
-        className="mt-1 cursor-pointer rounded bg-pink-500 p-1 font-bold"
-        disabled={slugCheck.isFetched && !slugCheck.data!.isAvailable}
-      />
-    </form>
+      <Button
+        className="mt-1 cursor-pointer rounded bg-pink-500 p-1 font-bold disabled:bg-pink-300"
+        disabled={!isEnabled}
+        onClick={(e) => {
+          e.preventDefault();
+          createSlug.mutate({ ...form });
+        }}
+      >
+        {(slugCheck.isLoading || createSlug.isPending) && <Spinner />}
+        Create
+      </Button>
+    </div>
   );
 };
 
