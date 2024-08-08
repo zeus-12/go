@@ -10,8 +10,8 @@ export const linkRouter = createTRPCRouter({
         slug: z.string().min(1),
       }),
     )
-    .query(async ({ ctx, input }) => {
-      const link = await ctx.db.shortLink.findFirst({
+    .mutation(async ({ ctx, input }) => {
+      const link = await ctx.db.shortLink.findUnique({
         where: {
           slug: input.slug,
         },
