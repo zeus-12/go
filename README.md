@@ -5,3 +5,4 @@ Slighly updated version of [Theos Link shortener](https://github.com/t3dotgg/jol
 ToDo
 
 - add a "text-field" and "file-upload" alternative to the "url-field".
+- maybe a simple analytics down the road. xd
